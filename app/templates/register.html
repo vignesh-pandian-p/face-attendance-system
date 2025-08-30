@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <h2 class="text-center">Register New Student</h2>
+        <form method="post">
+            <div class="mb-3">
+                <label for="name" class="form-label">Student Name</label>
+                <input type="text" class="form-control" id="name" name="name" placeholder="Enter student name" required>
+            </div>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary">Capture Face</button>
+            </div>
+        </form>
+        <div class="text-center mt-3">
+            <a href="{{ url_for('main.index') }}">← Back to Home</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -3,3 +3,6 @@ opencv-python
 flask
 numpy
 pandas
+Flask-SQLAlchemy
+Flask-Migrate
+mysql-connector-python
