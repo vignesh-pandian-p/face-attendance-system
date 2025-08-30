@@ -4,15 +4,15 @@
 
 {% block content %}
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Attendance Dashboard</h1>
-    <a href="{{ url_for('main.download_attendance_csv') }}" class="btn btn-primary">Download CSV</a>
+    <h1><i data-lucide="layout-dashboard"></i> Attendance Dashboard</h1>
+    <a href="{{ url_for('main.download_attendance_csv') }}" class="btn btn-primary"><i data-lucide="download"></i> Download CSV</a>
   </div>
   <table class="table table-striped">
     <thead>
       <tr>
         <th scope="col">#</th>
-        <th scope="col">Student Name</th>
-        <th scope="col">Timestamp</th>
+        <th scope="col"><i data-lucide="user"></i> Student Name</th>
+        <th scope="col"><i data-lucide="clock"></i> Timestamp</th>
       </tr>
     </thead>
     <tbody>

@@ -22,6 +22,9 @@ def index():
 def register():
     if request.method == 'POST':
         name = request.form['name']
+        department = request.form.get('department')
+        section = request.form.get('section')
+        current_year = request.form.get('current_year', type=int)
 
         # Check if user already exists
         if User.query.filter_by(name=name).first():
@@ -42,7 +45,13 @@ def register():
                 cv2.imwrite(image_path, frame)
 
                 # Save user to database
-                new_user = User(name=name, image_path=image_path)
+                new_user = User(
+                    name=name,
+                    image_path=image_path,
+                    department=department,
+                    section=section,
+                    current_year=current_year
+                )
                 db.session.add(new_user)
                 db.session.commit()
 
@@ -96,6 +105,32 @@ from app.models import AttendanceLog
 import io
 import csv
 from flask import Response
+
+import openpyxl
+
+@main_bp.route('/import', methods=['GET', 'POST'])
+def import_excel():
+    if request.method == 'POST':
+        file = request.files['excel_file']
+        if file:
+            workbook = openpyxl.load_workbook(file)
+            sheet = workbook.active
+            for row in sheet.iter_rows(min_row=2, values_only=True):
+                name, department, section, current_year = row
+                if not User.query.filter_by(name=name).first():
+                    # For now, image_path is a placeholder.
+                    # The user will need to capture the face separately.
+                    user = User(
+                        name=name,
+                        department=department,
+                        section=section,
+                        current_year=current_year,
+                        image_path=f"static/faces/{name}.jpg" # Placeholder
+                    )
+                    db.session.add(user)
+            db.session.commit()
+            return redirect(url_for('main.dashboard'))
+    return render_template('import_excel.html')
 
 @main_bp.route('/dashboard')
 def dashboard():

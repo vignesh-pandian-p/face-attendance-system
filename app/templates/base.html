@@ -5,24 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block title %}Face Attendance{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
   </head>
   <body>
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
       <div class="container">
-        <a class="navbar-brand" href="{{ url_for('main.index') }}">Face Attendance</a>
+        <a class="navbar-brand" href="{{ url_for('main.index') }}">
+          <i data-lucide="camera"></i>
+          Face Attendance
+        </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
           <ul class="navbar-nav">
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('main.register') }}">Register</a>
+              <a class="nav-link" href="{{ url_for('main.register') }}"><i data-lucide="user-plus"></i> Register</a>
             </li>
             <li class="nav-item">
-              <a class="nav-link" href="{{ url_for('main.attendance') }}">Take Attendance</a>
+              <a class="nav-link" href="{{ url_for('main.attendance') }}"><i data-lucide="scan-face"></i> Take Attendance</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('main.dashboard') }}">Dashboard</a>
+                <a class="nav-link" href="{{ url_for('main.dashboard') }}"><i data-lucide="layout-dashboard"></i> Dashboard</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('main.import_excel') }}"><i data-lucide="file-spreadsheet"></i> Import from Excel</a>
             </li>
           </ul>
         </div>
@@ -34,5 +41,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      lucide.createIcons();
+    </script>
   </body>
 </html>
