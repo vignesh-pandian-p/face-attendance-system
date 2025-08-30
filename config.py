@@ -2,6 +2,5 @@ import os
 
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'a-hard-to-guess-string'
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'sqlite:///' + os.path.join(os.path.abspath(os.path.dirname(__file__)), 'app.db')
+    SQLALCHEMY_DATABASE_URI = 'mysql+mysqlconnector://user:password@localhost/face_attendance'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
