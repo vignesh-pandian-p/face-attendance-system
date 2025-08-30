@@ -132,6 +132,23 @@ def import_excel():
             return redirect(url_for('main.dashboard'))
     return render_template('import_excel.html')
 
+@main_bp.route('/edit_student/<int:student_id>', methods=['GET', 'POST'])
+def edit_student(student_id):
+    student = User.query.get_or_404(student_id)
+    if request.method == 'POST':
+        student.name = request.form['name']
+        student.department = request.form['department']
+        student.section = request.form['section']
+        student.current_year = request.form['current_year']
+        db.session.commit()
+        return redirect(url_for('main.students'))
+    return render_template('edit_student.html', student=student)
+
+@main_bp.route('/students')
+def students():
+    all_students = User.query.all()
+    return render_template('students.html', students=all_students)
+
 @main_bp.route('/dashboard')
 def dashboard():
     logs = AttendanceLog.query.order_by(AttendanceLog.timestamp.desc()).all()
