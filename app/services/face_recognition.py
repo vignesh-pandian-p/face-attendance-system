@@ -1,22 +1,19 @@
 import os
 import face_recognition
-from app.models import User, AttendanceLog
+import numpy as np
+from app.models import User, AttendanceLog, Face
 from app.extensions import db
 from datetime import datetime
 
 def get_known_faces():
     known_encodings = []
     known_names = []
-    users = User.query.all()
-    for user in users:
-        try:
-            image = face_recognition.load_image_file(user.image_path)
-            encoding = face_recognition.face_encodings(image)[0]
-            known_encodings.append(encoding)
-            known_names.append(user.name)
-        except (FileNotFoundError, IndexError):
-            # Handle cases where image is missing or no face is found
-            pass
+    faces = Face.query.all()
+    for face in faces:
+        # Convert the string encoding back to a numpy array
+        encoding = np.fromstring(face.encoding, sep=',')
+        known_encodings.append(encoding)
+        known_names.append(face.user.name)
     return known_encodings, known_names
 
 def mark_attendance(user_name):

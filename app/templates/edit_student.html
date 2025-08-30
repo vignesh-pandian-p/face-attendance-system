@@ -23,8 +23,9 @@
                 <label for="current_year" class="form-label"><i data-lucide="calendar"></i> Current Year</label>
                 <input type="number" class="form-control" id="current_year" name="current_year" value="{{ student.current_year }}">
             </div>
-            <div class="d-grid">
+            <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Save Changes</button>
+                <a href="{{ url_for('main.add_face', student_id=student.id) }}" class="btn btn-secondary"><i data-lucide="camera"></i> Add New Face</a>
             </div>
         </form>
         <div class="text-center mt-3">
