@@ -11,25 +11,12 @@
                 <label for="name" class="form-label"><i data-lucide="user"></i> Student Name</label>
                 <input type="text" class="form-control" id="name" name="name" value="{{ student.name }}" required>
             </div>
-            <div class="mb-3">
-                <label for="department" class="form-label"><i data-lucide="building-2"></i> Department</label>
-                <input type="text" class="form-control" id="department" name="department" value="{{ student.department }}">
-            </div>
-            <div class="mb-3">
-                <label for="section" class="form-label"><i data-lucide="layout-grid"></i> Section</label>
-                <input type="text" class="form-control" id="section" name="section" value="{{ student.section }}">
-            </div>
-            <div class="mb-3">
-                <label for="current_year" class="form-label"><i data-lucide="calendar"></i> Current Year</label>
-                <input type="number" class="form-control" id="current_year" name="current_year" value="{{ student.current_year }}">
-            </div>
             <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Save Changes</button>
-                <a href="{{ url_for('main.add_face', student_id=student.id) }}" class="btn btn-secondary"><i data-lucide="camera"></i> Add New Face</a>
             </div>
         </form>
         <div class="text-center mt-3">
-            <a href="{{ url_for('main.students') }}">← Back to Students</a>
+            <a href="{{ url_for('main.class_detail', class_id=student.class_id) }}">← Back to Class</a>
         </div>
     </div>
 </div>
