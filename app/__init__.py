@@ -18,4 +18,7 @@ def create_app():
     # Import models
     from . import models
 
+    from .utils import format_datetime
+    app.jinja_env.filters['datetime'] = format_datetime
+
     return app

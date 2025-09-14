@@ -43,7 +43,7 @@ def mark_attendance(user_name):
     user = User.query.filter_by(name=user_name).first()
     if user:
         # Check if attendance has already been marked for this user today
-        today = datetime.now(IST).date()
+        today = datetime.utcnow().date()
         existing_log = AttendanceLog.query.filter(
             AttendanceLog.user_id == user.id,
             db.func.date(AttendanceLog.timestamp) == today
