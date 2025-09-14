@@ -5,7 +5,10 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i data-lucide="users"></i> Students in {{ class_obj.year }} {{ class_obj.department }} - Section {{ class_obj.section }}</h1>
-    <a href="{{ url_for('main.register_student_in_class', class_id=class_obj.id) }}" class="btn btn-primary"><i data-lucide="user-plus"></i> Register Student</a>
+    <div>
+        <a href="{{ url_for('main.register_student_in_class', class_id=class_obj.id) }}" class="btn btn-primary"><i data-lucide="user-plus"></i> Register Student</a>
+        <a href="{{ url_for('main.download_class_attendance_pdf', class_id=class_obj.id) }}" class="btn btn-secondary"><i data-lucide="file-down"></i> Download PDF Report</a>
+    </div>
 </div>
 <table class="table table-striped">
     <thead>

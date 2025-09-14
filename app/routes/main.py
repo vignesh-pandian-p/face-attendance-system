@@ -1,10 +1,9 @@
-from flask import Blueprint, render_template, request, redirect, send_file
-from flask import Blueprint, render_template, request, redirect, send_file
-from flask import Blueprint, render_template, request, redirect, url_for, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, send_file, make_response
 import os
 import cv2
 import face_recognition
 from datetime import datetime
+from fpdf import FPDF
 from app.services.face_recognition import get_known_faces, mark_attendance
 from app.extensions import db
 from app.models import User, AttendanceLog, Face, Class
@@ -218,6 +217,41 @@ def add_class():
 def class_detail(class_id):
     class_obj = Class.query.get_or_404(class_id)
     return render_template('class_detail.html', class_obj=class_obj)
+
+@main_bp.route('/classes/<int:class_id>/attendance/download')
+def download_class_attendance_pdf(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+
+    student_ids = [user.id for user in class_obj.users]
+
+    logs = AttendanceLog.query.filter(AttendanceLog.user_id.in_(student_ids)).order_by(AttendanceLog.timestamp.desc()).all()
+
+    pdf = FPDF()
+    pdf.add_page()
+
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(0, 10, f'Attendance Report for {class_obj.year} {class_obj.department} - Section {class_obj.section}', 0, 1, 'C')
+    pdf.ln(10)
+
+    pdf.set_font('Arial', 'B', 12)
+    pdf.cell(60, 10, 'Student Name', 1)
+    pdf.cell(60, 10, 'Timestamp', 1)
+    pdf.ln()
+
+    pdf.set_font('Arial', '', 12)
+    if logs:
+        for log in logs:
+            pdf.cell(60, 10, log.user.name, 1)
+            pdf.cell(60, 10, log.timestamp.strftime('%Y-%m-%d %H:%M:%S'), 1)
+            pdf.ln()
+    else:
+        pdf.cell(120, 10, 'No attendance records found for this class.', 1, 1, 'C')
+
+    response = make_response(pdf.output(dest='S').encode('latin-1'))
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename=attendance_report_{class_obj.department}_{class_obj.year}_{class_obj.section}.pdf'
+
+    return response
 
 @main_bp.route('/classes/<int:class_id>/delete', methods=['POST'])
 def delete_class(class_id):
