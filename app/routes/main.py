@@ -1,14 +1,15 @@
-from flask import Blueprint, render_template, request, redirect, send_file
-from flask import Blueprint, render_template, request, redirect, send_file
-from flask import Blueprint, render_template, request, redirect, url_for, send_file
+from flask import Blueprint, render_template, request, redirect, url_for, send_file, Response
 import os
 import cv2
-import face_recognition
+import io
+import csv
+import openpyxl
+import numpy as np
+from deepface import DeepFace
 from datetime import datetime
 import pytz
-from app.services.face_recognition import get_known_faces, mark_attendance
 from app.extensions import db
-from app.models import User, AttendanceLog
+from app.models import User, AttendanceLog, Class
 
 main_bp = Blueprint('main', __name__)
 
@@ -28,9 +29,7 @@ from app.models import Face
 def register():
     if request.method == 'POST':
         name = request.form['name']
-        department = request.form.get('department')
-        section = request.form.get('section')
-        current_year = request.form.get('current_year', type=int)
+        class_id = request.form.get('class_id', type=int)
 
         if User.query.filter_by(name=name).first():
             return redirect(url_for('main.register'))
@@ -47,9 +46,7 @@ def register():
                 # Save user first to get an ID
                 new_user = User(
                     name=name,
-                    department=department,
-                    section=section,
-                    current_year=current_year
+                    class_id=class_id
                 )
                 db.session.add(new_user)
                 db.session.commit()
@@ -58,17 +55,12 @@ def register():
                 image_path = os.path.join(UPLOAD_FOLDER, f"{new_user.id}_{name}.jpg")
                 cv2.imwrite(image_path, frame)
 
-                rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                encodings = face_recognition.face_encodings(rgb_frame)
-                if encodings:
-                    encoding_str = ','.join(map(str, encodings[0]))
-                    new_face = Face(
-                        user_id=new_user.id,
-                        image_path=image_path,
-                        encoding=encoding_str
-                    )
-                    db.session.add(new_face)
-                    db.session.commit()
+                new_face = Face(
+                    user_id=new_user.id,
+                    image_path=image_path
+                )
+                db.session.add(new_face)
+                db.session.commit()
 
                 break
             elif key == ord('q'):
@@ -76,13 +68,26 @@ def register():
         cap.release()
         cv2.destroyAllWindows()
         return redirect(url_for('main.index'))
-    return render_template('register.html')
+    classes = Class.query.all()
+    return render_template('register.html', classes=classes)
 
-from app.services.face_recognition import get_known_faces, mark_attendance
+
+def mark_attendance(name):
+    user = User.query.filter_by(name=name).first()
+    if user:
+        # Check if already marked today
+        today = date.today()
+        log = AttendanceLog.query.filter(
+            AttendanceLog.user_id == user.id,
+            db.func.date(AttendanceLog.timestamp) == today
+        ).first()
+        if not log:
+            new_log = AttendanceLog(user_id=user.id)
+            db.session.add(new_log)
+            db.session.commit()
 
 @main_bp.route('/attendance')
 def attendance():
-    known_encodings, known_names = get_known_faces()
     cap = cv2.VideoCapture(0)
 
     while True:
@@ -90,21 +95,22 @@ def attendance():
         if not ret:
             break
 
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-        face_locations = face_recognition.face_locations(rgb_frame)
-        face_encodings = face_recognition.face_encodings(rgb_frame, face_locations)
-
-        for (top, right, bottom, left), face_encoding in zip(face_locations, face_encodings):
-            matches = face_recognition.compare_faces(known_encodings, face_encoding)
-            name = "Unknown"
-
-            if True in matches:
-                first_match_index = matches.index(True)
-                name = known_names[first_match_index]
-                mark_attendance(name)
-
-            cv2.rectangle(frame, (left, top), (right, bottom), (0, 0, 255), 2)
-            cv2.putText(frame, name, (left + 6, bottom - 6), cv2.FONT_HERSHEY_DUPLEX, 0.5, (255, 255, 255), 1)
+        try:
+            dfs = DeepFace.find(img_path=frame, db_path=UPLOAD_FOLDER, enforce_detection=False)
+            for df in dfs:
+                if not df.empty:
+                    identity = df.iloc[0]['identity']
+                    user_id = int(os.path.basename(identity).split('_')[0])
+                    user = User.query.get(user_id)
+                    if user:
+                        mark_attendance(user.name)
+                        # Draw rectangle and name on the frame
+                        # This part is tricky as DeepFace.find does not return face locations directly
+                        # For now, we'll just mark attendance without drawing on the frame
+        except Exception as e:
+            print(e)
+            # Handle case where no face is detected or other errors
+            pass
 
         cv2.imshow('Attendance', frame)
 
@@ -131,15 +137,13 @@ def import_excel():
             workbook = openpyxl.load_workbook(file)
             sheet = workbook.active
             for row in sheet.iter_rows(min_row=2, values_only=True):
-                name, department, section, current_year = row
+                name, class_id = row
                 if not User.query.filter_by(name=name).first():
                     # For now, image_path is a placeholder.
                     # The user will need to capture the face separately.
                     user = User(
                         name=name,
-                        department=department,
-                        section=section,
-                        current_year=current_year,
+                        class_id=class_id,
                         image_path=f"static/faces/{name}.jpg" # Placeholder
                     )
                     db.session.add(user)
@@ -163,17 +167,12 @@ def add_face(student_id):
             image_path = os.path.join(UPLOAD_FOLDER, f"{student.id}_{student.name}_{len(student.faces) + 1}.jpg")
             cv2.imwrite(image_path, frame)
 
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            encodings = face_recognition.face_encodings(rgb_frame)
-            if encodings:
-                encoding_str = ','.join(map(str, encodings[0]))
-                new_face = Face(
-                    user_id=student.id,
-                    image_path=image_path,
-                    encoding=encoding_str
-                )
-                db.session.add(new_face)
-                db.session.commit()
+            new_face = Face(
+                user_id=student.id,
+                image_path=image_path
+            )
+            db.session.add(new_face)
+            db.session.commit()
 
             break
         elif key == ord('q'):
@@ -185,7 +184,7 @@ def add_face(student_id):
 @main_bp.route('/delete_student/<int:student_id>', methods=['GET'])
 def delete_student(student_id):
     student = User.query.get_or_404(student_id)
-
+    class_id = student.class_id
     # Delete associated face images
     for face in student.faces:
         if os.path.exists(face.image_path):
@@ -193,48 +192,120 @@ def delete_student(student_id):
 
     db.session.delete(student)
     db.session.commit()
-    return redirect(url_for('main.students'))
+    return redirect(url_for('main.class_detail', class_id=class_id))
 
 @main_bp.route('/edit_student/<int:student_id>', methods=['GET', 'POST'])
 def edit_student(student_id):
     student = User.query.get_or_404(student_id)
     if request.method == 'POST':
         student.name = request.form['name']
-        student.department = request.form['department']
-        student.section = request.form['section']
-        student.current_year = request.form['current_year']
+        student.class_id = request.form['class_id']
         db.session.commit()
-        return redirect(url_for('main.students'))
-    return render_template('edit_student.html', student=student)
+        return redirect(url_for('main.class_detail', class_id=student.class_id))
+    classes = Class.query.all()
+    return render_template('edit_student.html', student=student, classes=classes)
 
-@main_bp.route('/students')
-def students():
-    all_students = User.query.all()
-    return render_template('students.html', students=all_students)
+@main_bp.route('/classes')
+def classes():
+    all_classes = Class.query.all()
+    return render_template('classes.html', classes=all_classes)
+
+@main_bp.route('/add_class', methods=['GET', 'POST'])
+def add_class():
+    if request.method == 'POST':
+        department = request.form['department']
+        section = request.form['section']
+        year = request.form['year']
+        advisor = request.form['advisor']
+        new_class = Class(department=department, section=section, year=year, advisor=advisor)
+        db.session.add(new_class)
+        db.session.commit()
+        return redirect(url_for('main.classes'))
+    return render_template('add_class.html')
+
+@main_bp.route('/class/<int:class_id>')
+def class_detail(class_id):
+    class_ = Class.query.get_or_404(class_id)
+    return render_template('class_detail.html', class_=class_)
 
 @main_bp.route('/dashboard')
 def dashboard():
     logs = AttendanceLog.query.order_by(AttendanceLog.timestamp.desc()).all()
     return render_template('dashboard.html', logs=logs)
 
-@main_bp.route('/download/attendance.csv')
-def download_attendance_csv():
-    logs = AttendanceLog.query.all()
+from app.services.pdf_generator import generate_class_report_pdf
+from flask import Response
+from datetime import date
 
-    output = io.StringIO()
-    writer = csv.writer(output)
+@main_bp.route('/report/class/<int:class_id>/daily')
+def daily_class_report(class_id):
+    class_ = Class.query.get_or_404(class_id)
+    students = class_.students
+    today = date.today()
+    attendance_logs = AttendanceLog.query.filter(
+        AttendanceLog.user_id.in_([student.id for student in students]),
+        db.func.date(AttendanceLog.timestamp) == today
+    ).all()
 
-    # Write headers
-    writer.writerow(['ID', 'User Name', 'Timestamp'])
+    pdf_content = generate_class_report_pdf(class_, students, attendance_logs)
 
-    # Write data
-    for log in logs:
-        writer.writerow([log.id, log.user.name, log.timestamp.strftime('%Y-%m-%d %H:%M:%S')])
+    return Response(pdf_content,
+                    mimetype='application/pdf',
+                    headers={'Content-Disposition': f'attachment;filename=daily_report_{class_.department}_{today}.pdf'})
 
-    output.seek(0)
+from app.services.pdf_generator import generate_monthly_class_report_pdf
 
-    return Response(
-        output,
-        mimetype="text/csv",
-        headers={"Content-Disposition": "attachment;filename=attendance.csv"}
-    )
+@main_bp.route('/report/class/<int:class_id>/monthly')
+def monthly_class_report(class_id):
+    class_ = Class.query.get_or_404(class_id)
+    students = class_.students
+    month = request.args.get('month', date.today().month, type=int)
+    year = request.args.get('year', date.today().year, type=int)
+
+    attendance_logs = AttendanceLog.query.filter(
+        AttendanceLog.user_id.in_([student.id for student in students]),
+        db.extract('month', AttendanceLog.timestamp) == month,
+        db.extract('year', AttendanceLog.timestamp) == year
+    ).all()
+
+    pdf_content = generate_monthly_class_report_pdf(class_, students, attendance_logs, month, year)
+
+    return Response(pdf_content,
+                    mimetype='application/pdf',
+                    headers={'Content-Disposition': f'attachment;filename=monthly_report_{class_.department}_{month}_{year}.pdf'})
+
+from app.services.pdf_generator import generate_monthly_student_report_pdf, generate_yearly_student_report_pdf
+
+@main_bp.route('/report/student/<int:student_id>/monthly')
+def monthly_student_report(student_id):
+    student = User.query.get_or_404(student_id)
+    month = request.args.get('month', date.today().month, type=int)
+    year = request.args.get('year', date.today().year, type=int)
+
+    attendance_logs = AttendanceLog.query.filter(
+        AttendanceLog.user_id == student_id,
+        db.extract('month', AttendanceLog.timestamp) == month,
+        db.extract('year', AttendanceLog.timestamp) == year
+    ).all()
+
+    pdf_content = generate_monthly_student_report_pdf(student, attendance_logs, month, year)
+
+    return Response(pdf_content,
+                    mimetype='application/pdf',
+                    headers={'Content-Disposition': f'attachment;filename=monthly_report_{student.name}_{month}_{year}.pdf'})
+
+@main_bp.route('/report/student/<int:student_id>/yearly')
+def yearly_student_report(student_id):
+    student = User.query.get_or_404(student_id)
+    year = request.args.get('year', date.today().year, type=int)
+
+    attendance_logs = AttendanceLog.query.filter(
+        AttendanceLog.user_id == student_id,
+        db.extract('year', AttendanceLog.timestamp) == year
+    ).all()
+
+    pdf_content = generate_yearly_student_report_pdf(student, attendance_logs, year)
+
+    return Response(pdf_content,
+                    mimetype='application/pdf',
+                    headers={'Content-Disposition': f'attachment;filename=yearly_report_{student.name}_{year}.pdf'})

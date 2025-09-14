@@ -12,16 +12,13 @@
                 <input type="text" class="form-control" id="name" name="name" placeholder="Enter student name" required>
             </div>
             <div class="mb-3">
-                <label for="department" class="form-label"><i data-lucide="building-2"></i> Department</label>
-                <input type="text" class="form-control" id="department" name="department" placeholder="Enter department">
-            </div>
-            <div class="mb-3">
-                <label for="section" class="form-label"><i data-lucide="layout-grid"></i> Section</label>
-                <input type="text" class="form-control" id="section" name="section" placeholder="Enter section">
-            </div>
-            <div class="mb-3">
-                <label for="current_year" class="form-label"><i data-lucide="calendar"></i> Current Year</label>
-                <input type="number" class="form-control" id="current_year" name="current_year" placeholder="Enter current year">
+                <label for="class_id" class="form-label"><i data-lucide="school"></i> Class</label>
+                <select class="form-select" id="class_id" name="class_id" required>
+                    <option selected disabled value="">Choose...</option>
+                    {% for class_ in classes %}
+                    <option value="{{ class_.id }}">{{ class_.department }} - {{ class_.year }} Year {{ class_.section }} Section</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="d-grid">
                 <button type="submit" class="btn btn-primary"><i data-lucide="camera"></i> Capture Face</button>

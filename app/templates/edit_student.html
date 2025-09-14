@@ -12,16 +12,13 @@
                 <input type="text" class="form-control" id="name" name="name" value="{{ student.name }}" required>
             </div>
             <div class="mb-3">
-                <label for="department" class="form-label"><i data-lucide="building-2"></i> Department</label>
-                <input type="text" class="form-control" id="department" name="department" value="{{ student.department }}">
-            </div>
-            <div class="mb-3">
-                <label for="section" class="form-label"><i data-lucide="layout-grid"></i> Section</label>
-                <input type="text" class="form-control" id="section" name="section" value="{{ student.section }}">
-            </div>
-            <div class="mb-3">
-                <label for="current_year" class="form-label"><i data-lucide="calendar"></i> Current Year</label>
-                <input type="number" class="form-control" id="current_year" name="current_year" value="{{ student.current_year }}">
+                <label for="class_id" class="form-label"><i data-lucide="school"></i> Class</label>
+                <select class="form-select" id="class_id" name="class_id" required>
+                    <option selected disabled value="">Choose...</option>
+                    {% for class_ in classes %}
+                    <option value="{{ class_.id }}" {% if student.class_id == class_.id %}selected{% endif %}>{{ class_.department }} - {{ class_.year }} Year {{ class_.section }} Section</option>
+                    {% endfor %}
+                </select>
             </div>
             <div class="d-grid gap-2">
                 <button type="submit" class="btn btn-primary"><i data-lucide="save"></i> Save Changes</button>
@@ -29,7 +26,7 @@
             </div>
         </form>
         <div class="text-center mt-3">
-            <a href="{{ url_for('main.students') }}">← Back to Students</a>
+            <a href="{{ url_for('main.class_detail', class_id=student.class_id) }}">← Back to Class</a>
         </div>
     </div>
 </div>

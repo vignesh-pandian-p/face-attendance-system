@@ -1,9 +1,10 @@
-face_recognition
-opencv-python
-flask
-numpy
-pandas
+deepface
+tensorflow
+tf-keras
+Flask
 Flask-SQLAlchemy
 Flask-Migrate
 mysql-connector-python
 openpyxl
+FPDF
+numpy
