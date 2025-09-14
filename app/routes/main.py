@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for, send_file, make_response
+from flask import Blueprint, render_template, request, redirect, url_for, send_file, make_response, current_app
 import os
 import cv2
 import face_recognition
 from datetime import datetime
-from fpdf import FPDF
 from app.services.face_recognition import get_known_faces, mark_attendance
+from app.services.pdf_generator import generate_attendance_pdf
 from app.extensions import db
 from app.models import User, AttendanceLog, Face, Class
 
@@ -226,28 +226,11 @@ def download_class_attendance_pdf(class_id):
 
     logs = AttendanceLog.query.filter(AttendanceLog.user_id.in_(student_ids)).order_by(AttendanceLog.timestamp.desc()).all()
 
-    pdf = FPDF()
-    pdf.add_page()
+    college_name = current_app.config.get('COLLEGE_NAME', 'My College')
 
-    pdf.set_font('Arial', 'B', 16)
-    pdf.cell(0, 10, f'Attendance Report for {class_obj.year} {class_obj.department} - Section {class_obj.section}', 0, 1, 'C')
-    pdf.ln(10)
+    pdf_data = generate_attendance_pdf(college_name, class_obj, logs)
 
-    pdf.set_font('Arial', 'B', 12)
-    pdf.cell(60, 10, 'Student Name', 1)
-    pdf.cell(60, 10, 'Timestamp', 1)
-    pdf.ln()
-
-    pdf.set_font('Arial', '', 12)
-    if logs:
-        for log in logs:
-            pdf.cell(60, 10, log.user.name, 1)
-            pdf.cell(60, 10, log.timestamp.strftime('%Y-%m-%d %H:%M:%S'), 1)
-            pdf.ln()
-    else:
-        pdf.cell(120, 10, 'No attendance records found for this class.', 1, 1, 'C')
-
-    response = make_response(bytes(pdf.output(dest='S')))
+    response = make_response(bytes(pdf_data))
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'attachment; filename=attendance_report_{class_obj.department}_{class_obj.year}_{class_obj.section}.pdf'
 
