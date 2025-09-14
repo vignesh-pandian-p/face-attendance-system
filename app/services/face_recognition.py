@@ -10,10 +10,16 @@ def get_known_faces():
     known_names = []
     faces = Face.query.all()
     for face in faces:
-        # Convert the binary encoding back to a numpy array
-        encoding = np.frombuffer(face.encoding, dtype=np.float64)
-        known_encodings.append(encoding)
-        known_names.append(face.user.name)
+        try:
+            # Convert the binary encoding back to a numpy array
+            encoding = np.frombuffer(face.encoding, dtype=np.float64)
+            known_encodings.append(encoding)
+            known_names.append(face.user.name)
+        except TypeError:
+            # This can happen if old data (string format) is still in the database.
+            # We'll just skip it. A proper data migration would be the best solution.
+            print(f"Skipping malformed encoding for user {face.user.name}")
+            continue
     return known_encodings, known_names
 
 def mark_attendance(user_name):
