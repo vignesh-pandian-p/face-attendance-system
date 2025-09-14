@@ -176,3 +176,45 @@ def download_attendance_csv():
         mimetype="text/csv",
         headers={"Content-Disposition": "attachment;filename=attendance.csv"}
     )
+
+from flask import make_response
+from weasyprint import HTML
+from datetime import datetime
+
+@main_bp.route('/reports', methods=['GET'])
+def reports():
+    students = User.query.all()
+    return render_template('reports.html', students=students, now=datetime.now())
+
+@main_bp.route('/generate_report', methods=['POST'])
+def generate_report():
+    report_type = request.form.get('report_type')
+    month = int(request.form.get('month'))
+    year = int(request.form.get('year'))
+    student_id = request.form.get('student_id')
+
+    if report_type == 'monthly':
+        logs = AttendanceLog.query.filter(
+            db.extract('month', AttendanceLog.timestamp) == month,
+            db.extract('year', AttendanceLog.timestamp) == year
+        ).all()
+        template = render_template('report_template.html', logs=logs, month=month, year=year, report_type=report_type)
+    elif report_type == 'student':
+        logs = AttendanceLog.query.filter(
+            db.extract('month', AttendanceLog.timestamp) == month,
+            db.extract('year', AttendanceLog.timestamp) == year,
+            AttendanceLog.user_id == student_id
+        ).all()
+        student = User.query.get(student_id)
+        template = render_template('report_template.html', logs=logs, month=month, year=year, student=student, report_type=report_type)
+    else:
+        return "Invalid report type", 400
+
+    html = HTML(string=template)
+    pdf = html.write_pdf()
+
+    response = make_response(pdf)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename={report_type}_report_{month}_{year}.pdf'
+
+    return response

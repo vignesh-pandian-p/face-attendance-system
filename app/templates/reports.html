@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block title %}Reports{% endblock %}
+
+{% block content %}
+<h1><i data-lucide="file-text"></i> Attendance Reports</h1>
+<div class="card">
+    <div class="card-body">
+        <h5 class="card-title">Generate a New Report</h5>
+        <form method="POST" action="{{ url_for('main.generate_report') }}">
+            <div class="mb-3">
+                <label for="report_type" class="form-label">Report Type</label>
+                <select class="form-select" id="report_type" name="report_type" required>
+                    <option value="monthly">Monthly</option>
+                    <option value="student">Individual Student</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="month" class="form-label">Month</label>
+                <select class="form-select" id="month" name="month" required>
+                    {% for i in range(1, 13) %}
+                        <option value="{{ i }}">{{ i }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="year" class="form-label">Year</label>
+                <input type="number" class="form-control" id="year" name="year" value="{{ now.year }}" required>
+            </div>
+            <div class="mb-3" id="student_select_div" style="display: none;">
+                <label for="student_id" class="form-label">Student</label>
+                <select class="form-select" id="student_id" name="student_id">
+                    <option value="">All Students</option>
+                    {% for student in students %}
+                        <option value="{{ student.id }}">{{ student.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary">Generate Report</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.getElementById('report_type').addEventListener('change', function () {
+        var studentSelectDiv = document.getElementById('student_select_div');
+        if (this.value === 'student') {
+            studentSelectDiv.style.display = 'block';
+        } else {
+            studentSelectDiv.style.display = 'none';
+        }
+    });
+</script>
+{% endblock %}
