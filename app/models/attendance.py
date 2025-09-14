@@ -6,7 +6,7 @@ class AttendanceLog(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     timestamp = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user = db.relationship('User', backref=db.backref('logs', lazy=True))
+    user = db.relationship('User', backref=db.backref('logs', lazy=True, cascade="all, delete-orphan"))
 
     def __repr__(self):
         return f'<AttendanceLog {self.user.name} at {self.timestamp}>'
