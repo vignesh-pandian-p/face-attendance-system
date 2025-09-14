@@ -247,7 +247,7 @@ def download_class_attendance_pdf(class_id):
     else:
         pdf.cell(120, 10, 'No attendance records found for this class.', 1, 1, 'C')
 
-    response = make_response(pdf.output(dest='S'))
+    response = make_response(bytes(pdf.output(dest='S')))
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'attachment; filename=attendance_report_{class_obj.department}_{class_obj.year}_{class_obj.section}.pdf'
 
