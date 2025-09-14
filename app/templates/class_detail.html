@@ -34,6 +34,7 @@
             <td>{{ student.name }}</td>
             <td>
                 <a href="{{ url_for('main.edit_student', student_id=student.id) }}" class="btn btn-sm btn-primary"><i data-lucide="edit"></i> Edit</a>
+                <a href="{{ url_for('main.add_face', student_id=student.id) }}" class="btn btn-sm btn-info"><i data-lucide="camera"></i> Add Face</a>
                 <a href="{{ url_for('main.delete_student', student_id=student.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this student?');"><i data-lucide="trash-2"></i> Delete</a>
             </td>
         </tr>
