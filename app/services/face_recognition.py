@@ -10,8 +10,8 @@ def get_known_faces():
     known_names = []
     faces = Face.query.all()
     for face in faces:
-        # Convert the string encoding back to a numpy array
-        encoding = np.fromstring(face.encoding, sep=',')
+        # Convert the binary encoding back to a numpy array
+        encoding = np.frombuffer(face.encoding, dtype=np.float64)
         known_encodings.append(encoding)
         known_names.append(face.user.name)
     return known_encodings, known_names

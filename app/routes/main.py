@@ -48,11 +48,11 @@ def register_student_in_class(class_id):
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 encodings = face_recognition.face_encodings(rgb_frame)
                 if encodings:
-                    encoding_str = ','.join(map(str, encodings[0]))
+                    encoding_bytes = encodings[0].tobytes()
                     new_face = Face(
                         user_id=new_user.id,
                         image_path=image_path,
-                        encoding=encoding_str
+                        encoding=encoding_bytes
                     )
                     db.session.add(new_face)
                     db.session.commit()
@@ -152,11 +152,11 @@ def add_face(student_id):
             rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             encodings = face_recognition.face_encodings(rgb_frame)
             if encodings:
-                encoding_str = ','.join(map(str, encodings[0]))
+                encoding_bytes = encodings[0].tobytes()
                 new_face = Face(
                     user_id=student.id,
                     image_path=image_path,
-                    encoding=encoding_str
+                    encoding=encoding_bytes
                 )
                 db.session.add(new_face)
                 db.session.commit()
