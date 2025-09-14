@@ -7,7 +7,7 @@ import face_recognition
 from datetime import datetime
 from app.services.face_recognition import get_known_faces, mark_attendance
 from app.extensions import db
-from app.models import User, AttendanceLog
+from app.models import User, AttendanceLog, Face, Class
 
 main_bp = Blueprint('main', __name__)
 
@@ -21,37 +21,28 @@ def index():
 import numpy as np
 from app.models import Face
 
-@main_bp.route('/register', methods=['GET', 'POST'])
-def register():
+@main_bp.route('/classes/<int:class_id>/register', methods=['GET', 'POST'])
+def register_student_in_class(class_id):
+    class_obj = Class.query.get_or_404(class_id)
     if request.method == 'POST':
         name = request.form['name']
-        department = request.form.get('department')
-        section = request.form.get('section')
-        current_year = request.form.get('current_year', type=int)
-
         if User.query.filter_by(name=name).first():
-            return redirect(url_for('main.register'))
+            return redirect(url_for('main.register_student_in_class', class_id=class_id))
 
         cap = cv2.VideoCapture(0)
         while True:
             ret, frame = cap.read()
             if not ret:
                 break
-            cv2.putText(frame, "Press 'S' to save, 'Q' to quit", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            cv2.putText(frame, f"Registering for {class_obj.department} {class_obj.year}", (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
+            cv2.putText(frame, "Press 'S' to save, 'Q' to quit", (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 0), 2)
             cv2.imshow("Capture Face", frame)
             key = cv2.waitKey(1) & 0xFF
             if key == ord('s'):
-                # Save user first to get an ID
-                new_user = User(
-                    name=name,
-                    department=department,
-                    section=section,
-                    current_year=current_year
-                )
+                new_user = User(name=name, class_id=class_id)
                 db.session.add(new_user)
                 db.session.commit()
 
-                # Now save the face
                 image_path = os.path.join(UPLOAD_FOLDER, f"{new_user.id}_{name}.jpg")
                 cv2.imwrite(image_path, frame)
 
@@ -66,14 +57,13 @@ def register():
                     )
                     db.session.add(new_face)
                     db.session.commit()
-
                 break
             elif key == ord('q'):
                 break
         cap.release()
         cv2.destroyAllWindows()
-        return redirect(url_for('main.index'))
-    return render_template('register.html')
+        return redirect(url_for('main.class_detail', class_id=class_id))
+    return render_template('register.html', class_obj=class_obj)
 
 from app.services.face_recognition import get_known_faces, mark_attendance
 
@@ -179,9 +169,11 @@ def add_face(student_id):
     cv2.destroyAllWindows()
     return redirect(url_for('main.edit_student', student_id=student_id))
 
-@main_bp.route('/delete_student/<int:student_id>', methods=['GET'])
+
+@main_bp.route('/student/<int:student_id>/delete', methods=['POST'])
 def delete_student(student_id):
     student = User.query.get_or_404(student_id)
+    class_id = student.class_id
 
     # Delete associated face images
     for face in student.faces:
@@ -190,24 +182,54 @@ def delete_student(student_id):
 
     db.session.delete(student)
     db.session.commit()
-    return redirect(url_for('main.students'))
+
+    return redirect(url_for('main.class_detail', class_id=class_id))
 
 @main_bp.route('/edit_student/<int:student_id>', methods=['GET', 'POST'])
 def edit_student(student_id):
     student = User.query.get_or_404(student_id)
     if request.method == 'POST':
         student.name = request.form['name']
-        student.department = request.form['department']
-        student.section = request.form['section']
-        student.current_year = request.form['current_year']
+        student.class_id = request.form['class_id']
         db.session.commit()
-        return redirect(url_for('main.students'))
-    return render_template('edit_student.html', student=student)
+        return redirect(url_for('main.class_detail', class_id=student.class_id))
+
+    all_classes = Class.query.all()
+    return render_template('edit_student.html', student=student, classes=all_classes)
+
+@main_bp.route('/classes')
+def classes():
+    all_classes = Class.query.all()
+    return render_template('classes.html', classes=all_classes)
+
+@main_bp.route('/classes/add', methods=['GET', 'POST'])
+def add_class():
+    if request.method == 'POST':
+        department = request.form['department']
+        section = request.form['section']
+        year = request.form['year']
+        new_class = Class(department=department, section=section, year=year)
+        db.session.add(new_class)
+        db.session.commit()
+        return redirect(url_for('main.classes'))
+    return render_template('add_class.html')
+
+@main_bp.route('/classes/<int:class_id>')
+def class_detail(class_id):
+    class_obj = Class.query.get_or_404(class_id)
+    return render_template('class_detail.html', class_obj=class_obj)
+
+@main_bp.route('/classes/<int:class_id>/delete', methods=['POST'])
+def delete_class(class_id):
+    class_to_delete = Class.query.get_or_404(class_id)
+    if not class_to_delete.users:
+        db.session.delete(class_to_delete)
+        db.session.commit()
+    return redirect(url_for('main.classes'))
 
 @main_bp.route('/students')
 def students():
-    all_students = User.query.all()
-    return render_template('students.html', students=all_students)
+    return redirect(url_for('main.classes'))
 
 @main_bp.route('/dashboard')
 def dashboard():

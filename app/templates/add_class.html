@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Class{% endblock %}
+
+{% block content %}
+<h1><i data-lucide="plus-circle"></i> Add a New Class</h1>
+<form method="post">
+    <div class="mb-3">
+        <label for="department" class="form-label">Department</label>
+        <input type="text" class="form-control" id="department" name="department" required>
+    </div>
+    <div class="mb-3">
+        <label for="year" class="form-label">Year</label>
+        <input type="text" class="form-control" id="year" name="year" placeholder="e.g., I, II, III" required>
+    </div>
+    <div class="mb-3">
+        <label for="section" class="form-label">Section</label>
+        <input type="text" class="form-control" id="section" name="section" placeholder="e.g., A, B" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Create Class</button>
+</form>
+{% endblock %}
