@@ -3,9 +3,12 @@ import os
 import cv2
 import face_recognition
 import pandas as pd
+import pytz
 from datetime import datetime
 
 app = Flask(__name__)
+IST = pytz.timezone("Asia/Kolkata")
+
 
 UPLOAD_FOLDER = 'static/faces'
 LOG_FOLDER = 'logs'  # Folder to store log files
@@ -27,7 +30,7 @@ def get_known_faces():
     return encodings, names
 
 def mark_attendance(name, filepath):
-    now = datetime.now()
+    now = datetime.now(IST)
     date = now.strftime("%Y-%m-%d")
     time = now.strftime("%H:%M:%S")
 
@@ -74,7 +77,7 @@ def attendance():
     seen = set()
 
     # Create unique log file per session
-    now = datetime.now()
+    now = datetime.now(IST)
     date_str = now.strftime("%Y-%m-%d")
     time_str = now.strftime("%H-%M")
     log_filename = f"attendance_{date_str}_{time_str}.csv"
