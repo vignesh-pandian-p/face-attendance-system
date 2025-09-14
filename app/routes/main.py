@@ -152,8 +152,36 @@ def attendance():
 
 @main_bp.route('/dashboard')
 def dashboard():
+    total_classes = Class.query.count()
+
+    classes = Class.query.all()
+    class_names = [f"{c.department} {c.year} {c.section}" for c in classes]
+    student_counts = [len(c.students) for c in classes]
+
+    today = datetime.utcnow().date()
+    present_counts = []
+    absent_counts = []
+
+    for c in classes:
+        student_ids = [s.id for s in c.students]
+        present_count = AttendanceLog.query.filter(
+            AttendanceLog.user_id.in_(student_ids),
+            db.func.date(AttendanceLog.timestamp) == today
+        ).count()
+        present_counts.append(present_count)
+        absent_counts.append(len(student_ids) - present_count)
+
     logs = AttendanceLog.query.order_by(AttendanceLog.timestamp.desc()).all()
-    return render_template('dashboard.html', logs=logs)
+
+    return render_template(
+        'dashboard.html',
+        logs=logs,
+        total_classes=total_classes,
+        class_names=class_names,
+        student_counts=student_counts,
+        present_counts=present_counts,
+        absent_counts=absent_counts
+    )
 
 @main_bp.route('/download/attendance.csv')
 def download_attendance_csv():
