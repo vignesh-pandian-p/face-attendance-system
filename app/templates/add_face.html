@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Face{% endblock %}
+
+{% block content %}
+<h1><i data-lucide="camera"></i> Add Face for {{ student.name }}</h1>
+<p>Click the button below to start the camera and capture a face image.</p>
+<form method="POST" action="{{ url_for('main.add_face', student_id=student.id) }}">
+    <button type="submit" class="btn btn-primary">Start Camera</button>
+</form>
+<div class="text-center mt-3">
+    <a href="{{ url_for('main.class_detail', class_id=student.class_id) }}">← Back to Class</a>
+</div>
+{% endblock %}

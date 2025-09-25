@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block title %}Registered Students{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i data-lucide="users"></i> Registered Students</h1>
+</div>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th scope="col">#</th>
+            <th scope="col"><i data-lucide="user"></i> Name</th>
+            <th scope="col"><i data-lucide="building-2"></i> Department</th>
+            <th scope="col"><i data-lucide="layout-grid"></i> Section</th>
+            <th scope="col"><i data-lucide="calendar"></i> Year</th>
+            <th scope="col"><i data-lucide="settings"></i> Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for student in students %}
+        <tr>
+            <th scope="row">{{ loop.index }}</th>
+            <td>{{ student.name }}</td>
+            <td>{{ student.department }}</td>
+            <td>{{ student.section }}</td>
+            <td>{{ student.current_year }}</td>
+            <td>
+                <a href="{{ url_for('main.edit_student', student_id=student.id) }}" class="btn btn-sm btn-primary"><i data-lucide="edit"></i> Edit</a>
+                <a href="{{ url_for('main.delete_student', student_id=student.id) }}" class="btn btn-sm btn-danger" onclick="return confirm('Are you sure you want to delete this student?');"><i data-lucide="trash-2"></i> Delete</a>
+            </td>
+        </tr>
+        {% else %}
+        <tr>
+            <td colspan="6" class="text-center">No students registered yet.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+
+{% block title %}Add Student{% endblock %}
+
+{% block content %}
+<h1><i data-lucide="user-plus"></i> Add a New Student</h1>
+<form method="POST" action="{{ url_for('main.add_student', class_id=class_id) }}">
+    <div class="mb-3">
+        <label for="name" class="form-label">Student Name</label>
+        <input type="text" class="form-control" id="name" name="name" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Add Student</button>
+</form>
+{% endblock %}
