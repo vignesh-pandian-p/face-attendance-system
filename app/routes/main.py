@@ -224,78 +224,94 @@ def reports():
 @main_bp.route('/generate_report', methods=['POST'])
 def generate_report():
     report_type = request.form.get('report_type')
-    month = int(request.form.get('month'))
-    year = int(request.form.get('year'))
-    student_id = request.form.get('student_id')
+    template_context = {'report_type': report_type}
+    pdf_filename = 'report.pdf'
 
-    if report_type == 'monthly':
-        logs = AttendanceLog.query.filter(
-            db.extract('month', AttendanceLog.timestamp) == month,
-            db.extract('year', AttendanceLog.timestamp) == year
-        ).all()
+    if report_type == 'daily':
+        report_date_str = request.form.get('report_date')
+        report_date = datetime.strptime(report_date_str, '%Y-%m-%d').date()
 
-        # Calculate statistics for the entire student body for the selected month
+        logs = AttendanceLog.query.filter(db.func.date(AttendanceLog.timestamp) == report_date).all()
+
         total_students = User.query.count()
-        present_students = db.session.query(AttendanceLog.user_id).filter(
-            db.extract('month', AttendanceLog.timestamp) == month,
-            db.extract('year', AttendanceLog.timestamp) == year
-        ).distinct().count()
+        present_students = db.session.query(AttendanceLog.user_id).filter(db.func.date(AttendanceLog.timestamp) == report_date).distinct().count()
         absent_students = total_students - present_students
 
-        template = render_template(
-            'report_template.html',
-            logs=logs,
-            month=month,
-            year=year,
-            report_type=report_type,
-            total_students=total_students,
-            present_students=present_students,
-            absent_students=absent_students
-        )
-    elif report_type == 'student':
-        student = User.query.get(student_id)
-        if not student:
-            return "Student not found", 404
+        template_context.update({
+            'logs': logs,
+            'report_date': report_date,
+            'total_students': total_students,
+            'present_students': present_students,
+            'absent_students': absent_students
+        })
+        pdf_filename = f'daily_report_{report_date.strftime("%Y-%m-%d")}.pdf'
 
-        # Get all students in the same class as the selected student
-        class_students = User.query.filter_by(class_id=student.class_id).all()
-        total_students_in_class = len(class_students)
-        student_ids_in_class = [s.id for s in class_students]
+    elif report_type == 'monthly' or report_type == 'student':
+        month = int(request.form.get('month'))
+        year = int(request.form.get('year'))
+        template_context.update({'month': month, 'year': year})
 
-        # Get attendance for the selected student
-        logs = AttendanceLog.query.filter(
-            db.extract('month', AttendanceLog.timestamp) == month,
-            db.extract('year', AttendanceLog.timestamp) == year,
-            AttendanceLog.user_id == student_id
-        ).all()
+        if report_type == 'monthly':
+            logs = AttendanceLog.query.filter(
+                db.extract('month', AttendanceLog.timestamp) == month,
+                db.extract('year', AttendanceLog.timestamp) == year
+            ).all()
+            total_students = User.query.count()
+            present_students = db.session.query(AttendanceLog.user_id).filter(
+                db.extract('month', AttendanceLog.timestamp) == month,
+                db.extract('year', AttendanceLog.timestamp) == year
+            ).distinct().count()
+            absent_students = total_students - present_students
 
-        # Calculate statistics for the class
-        present_students = db.session.query(AttendanceLog.user_id).filter(
-            db.extract('month', AttendanceLog.timestamp) == month,
-            db.extract('year', AttendanceLog.timestamp) == year,
-            AttendanceLog.user_id.in_(student_ids_in_class)
-        ).distinct().count()
-        absent_students = total_students_in_class - present_students
+            template_context.update({
+                'logs': logs,
+                'total_students': total_students,
+                'present_students': present_students,
+                'absent_students': absent_students
+            })
+            pdf_filename = f'monthly_report_{month}_{year}.pdf'
 
-        template = render_template(
-            'report_template.html',
-            logs=logs,
-            month=month,
-            year=year,
-            student=student,
-            report_type=report_type,
-            total_students=total_students_in_class,
-            present_students=present_students,
-            absent_students=absent_students
-        )
+        elif report_type == 'student':
+            student_id = request.form.get('student_id')
+            student = User.query.get(student_id)
+            if not student:
+                return "Student not found", 404
+
+            class_students = User.query.filter_by(class_id=student.class_id).all()
+            total_students_in_class = len(class_students)
+            student_ids_in_class = [s.id for s in class_students]
+
+            logs = AttendanceLog.query.filter(
+                db.extract('month', AttendanceLog.timestamp) == month,
+                db.extract('year', AttendanceLog.timestamp) == year,
+                AttendanceLog.user_id == student_id
+            ).all()
+
+            present_students = db.session.query(AttendanceLog.user_id).filter(
+                db.extract('month', AttendanceLog.timestamp) == month,
+                db.extract('year', AttendanceLog.timestamp) == year,
+                AttendanceLog.user_id.in_(student_ids_in_class)
+            ).distinct().count()
+            absent_students = total_students_in_class - present_students
+
+            template_context.update({
+                'logs': logs,
+                'student': student,
+                'total_students': total_students_in_class,
+                'present_students': present_students,
+                'absent_students': absent_students
+            })
+            pdf_filename = f'student_report_{student.name}_{month}_{year}.pdf'
+
     else:
         return "Invalid report type", 400
 
+    template = render_template('report_template.html', **template_context)
     html = HTML(string=template)
     pdf = html.write_pdf()
 
     response = make_response(pdf)
     response.headers['Content-Type'] = 'application/pdf'
-    response.headers['Content-Disposition'] = f'attachment; filename={report_type}_report_{month}_{year}.pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename={pdf_filename}'
 
     return response

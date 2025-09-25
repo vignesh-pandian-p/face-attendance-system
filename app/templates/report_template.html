@@ -11,7 +11,9 @@
     </style>
 </head>
 <body>
-    {% if report_type == 'monthly' %}
+    {% if report_type == 'daily' %}
+        <h1>Daily Attendance Report for {{ report_date.strftime('%Y-%m-%d') }}</h1>
+    {% elif report_type == 'monthly' %}
         <h1>Monthly Attendance Report for {{ month }}/{{ year }}</h1>
     {% elif report_type == 'student' %}
         <h1>Attendance Report for {{ student.name }} for {{ month }}/{{ year }}</h1>
