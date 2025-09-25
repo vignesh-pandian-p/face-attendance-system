@@ -153,6 +153,7 @@ def attendance():
 @main_bp.route('/dashboard')
 def dashboard():
     total_classes = Class.query.count()
+    total_students = User.query.count()
 
     classes = Class.query.all()
     class_names = [f"{c.department} {c.year} {c.section}" for c in classes]
@@ -164,12 +165,16 @@ def dashboard():
 
     for c in classes:
         student_ids = [s.id for s in c.students]
-        present_count = AttendanceLog.query.filter(
+        present_count = db.session.query(AttendanceLog.user_id).filter(
             AttendanceLog.user_id.in_(student_ids),
             db.func.date(AttendanceLog.timestamp) == today
-        ).count()
+        ).distinct().count()
         present_counts.append(present_count)
         absent_counts.append(len(student_ids) - present_count)
+
+    total_present_today = db.session.query(AttendanceLog.user_id).filter(
+        db.func.date(AttendanceLog.timestamp) == today
+    ).distinct().count()
 
     logs = AttendanceLog.query.order_by(AttendanceLog.timestamp.desc()).all()
 
@@ -177,6 +182,8 @@ def dashboard():
         'dashboard.html',
         logs=logs,
         total_classes=total_classes,
+        total_students=total_students,
+        total_present_today=total_present_today,
         class_names=class_names,
         student_counts=student_counts,
         present_counts=present_counts,
@@ -226,15 +233,61 @@ def generate_report():
             db.extract('month', AttendanceLog.timestamp) == month,
             db.extract('year', AttendanceLog.timestamp) == year
         ).all()
-        template = render_template('report_template.html', logs=logs, month=month, year=year, report_type=report_type)
+
+        # Calculate statistics for the entire student body for the selected month
+        total_students = User.query.count()
+        present_students = db.session.query(AttendanceLog.user_id).filter(
+            db.extract('month', AttendanceLog.timestamp) == month,
+            db.extract('year', AttendanceLog.timestamp) == year
+        ).distinct().count()
+        absent_students = total_students - present_students
+
+        template = render_template(
+            'report_template.html',
+            logs=logs,
+            month=month,
+            year=year,
+            report_type=report_type,
+            total_students=total_students,
+            present_students=present_students,
+            absent_students=absent_students
+        )
     elif report_type == 'student':
+        student = User.query.get(student_id)
+        if not student:
+            return "Student not found", 404
+
+        # Get all students in the same class as the selected student
+        class_students = User.query.filter_by(class_id=student.class_id).all()
+        total_students_in_class = len(class_students)
+        student_ids_in_class = [s.id for s in class_students]
+
+        # Get attendance for the selected student
         logs = AttendanceLog.query.filter(
             db.extract('month', AttendanceLog.timestamp) == month,
             db.extract('year', AttendanceLog.timestamp) == year,
             AttendanceLog.user_id == student_id
         ).all()
-        student = User.query.get(student_id)
-        template = render_template('report_template.html', logs=logs, month=month, year=year, student=student, report_type=report_type)
+
+        # Calculate statistics for the class
+        present_students = db.session.query(AttendanceLog.user_id).filter(
+            db.extract('month', AttendanceLog.timestamp) == month,
+            db.extract('year', AttendanceLog.timestamp) == year,
+            AttendanceLog.user_id.in_(student_ids_in_class)
+        ).distinct().count()
+        absent_students = total_students_in_class - present_students
+
+        template = render_template(
+            'report_template.html',
+            logs=logs,
+            month=month,
+            year=year,
+            student=student,
+            report_type=report_type,
+            total_students=total_students_in_class,
+            present_students=present_students,
+            absent_students=absent_students
+        )
     else:
         return "Invalid report type", 400
 
