@@ -11,22 +11,31 @@
             <div class="mb-3">
                 <label for="report_type" class="form-label">Report Type</label>
                 <select class="form-select" id="report_type" name="report_type" required>
+                    <option value="daily">Daily</option>
                     <option value="monthly">Monthly</option>
                     <option value="student">Individual Student</option>
                 </select>
             </div>
-            <div class="mb-3">
+
+            <div id="date_select_div" class="mb-3">
+                <label for="report_date" class="form-label">Date</label>
+                <input type="date" class="form-control" id="report_date" name="report_date" value="{{ now.strftime('%Y-%m-%d') }}">
+            </div>
+
+            <div id="month_select_div" class="mb-3" style="display: none;">
                 <label for="month" class="form-label">Month</label>
-                <select class="form-select" id="month" name="month" required>
+                <select class="form-select" id="month" name="month">
                     {% for i in range(1, 13) %}
-                        <option value="{{ i }}">{{ i }}</option>
+                        <option value="{{ i }}" {% if i == now.month %}selected{% endif %}>{{ i }}</option>
                     {% endfor %}
                 </select>
             </div>
-            <div class="mb-3">
+
+            <div id="year_select_div" class="mb-3" style="display: none;">
                 <label for="year" class="form-label">Year</label>
-                <input type="number" class="form-control" id="year" name="year" value="{{ now.year }}" required>
+                <input type="number" class="form-control" id="year" name="year" value="{{ now.year }}">
             </div>
+
             <div class="mb-3" id="student_select_div" style="display: none;">
                 <label for="student_id" class="form-label">Student</label>
                 <select class="form-select" id="student_id" name="student_id">
@@ -36,6 +45,7 @@
                     {% endfor %}
                 </select>
             </div>
+
             <button type="submit" class="btn btn-primary">Generate Report</button>
         </form>
     </div>
@@ -43,12 +53,30 @@
 
 <script>
     document.getElementById('report_type').addEventListener('change', function () {
-        var studentSelectDiv = document.getElementById('student_select_div');
-        if (this.value === 'student') {
-            studentSelectDiv.style.display = 'block';
-        } else {
-            studentSelectDiv.style.display = 'none';
+        var reportType = this.value;
+        var dateSelect = document.getElementById('date_select_div');
+        var monthSelect = document.getElementById('month_select_div');
+        var yearSelect = document.getElementById('year_select_div');
+        var studentSelect = document.getElementById('student_select_div');
+
+        dateSelect.style.display = 'none';
+        monthSelect.style.display = 'none';
+        yearSelect.style.display = 'none';
+        studentSelect.style.display = 'none';
+
+        if (reportType === 'daily') {
+            dateSelect.style.display = 'block';
+        } else if (reportType === 'monthly') {
+            monthSelect.style.display = 'block';
+            yearSelect.style.display = 'block';
+        } else if (reportType === 'student') {
+            monthSelect.style.display = 'block';
+            yearSelect.style.display = 'block';
+            studentSelect.style.display = 'block';
         }
     });
+
+    // Trigger the change event on page load to set the initial state
+    document.getElementById('report_type').dispatchEvent(new Event('change'));
 </script>
 {% endblock %}

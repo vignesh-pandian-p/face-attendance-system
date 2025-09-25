@@ -11,11 +11,20 @@
     </style>
 </head>
 <body>
-    {% if report_type == 'monthly' %}
+    {% if report_type == 'daily' %}
+        <h1>Daily Attendance Report for {{ report_date.strftime('%Y-%m-%d') }}</h1>
+    {% elif report_type == 'monthly' %}
         <h1>Monthly Attendance Report for {{ month }}/{{ year }}</h1>
     {% elif report_type == 'student' %}
         <h1>Attendance Report for {{ student.name }} for {{ month }}/{{ year }}</h1>
     {% endif %}
+
+    <div class="statistics">
+        <p><strong>Total No of Students:</strong> {{ total_students }}</p>
+        <p><strong>Total No of Students Present:</strong> {{ present_students }}</p>
+        <p><strong>Total No of Students Absent:</strong> {{ absent_students }}</p>
+    </div>
+    <p><small><i>* Note: The counts above represent unique students for the selected reporting period. "Present" means the student was marked at least once.</i></small></p>
 
     <table>
         <thead>
